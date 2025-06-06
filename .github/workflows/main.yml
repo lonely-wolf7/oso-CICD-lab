@@ -64,7 +64,6 @@ jobs:
     services:
       docker:
         image: docker:20.10.7-dind
-        privileged: true
         options: --network host
     steps:
       - name: Checkout code
