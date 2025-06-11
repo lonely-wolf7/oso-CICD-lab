@@ -59,39 +59,39 @@ jobs:
           args: "--source . --verbose"
 
   dast:
-    runs-on: ubuntu-latest
-    needs: build-test
-    services:
-      docker:
-        image: docker:20.10.7-dind
-        options: --privileged --network host
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+   runs-on: ubuntu-latest
+   needs: build-test
+   services:
+    docker:
+      image: docker:20.10.7-dind
+      options: --privileged
+   steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
 
-      - name: Build Docker image
-        run: docker build -t dsvw:latest .
+    - name: Build Docker image
+      run: docker build -t dsvw:latest .
 
-      - name: Run DSVW container
-        run: |
-          docker run -d -p 3000:8000 --name dsvw dsvw:latest
+    - name: Run DSVW container
+      run: |
+        docker run -d -p 3000:8000 --name dsvw dsvw:latest
 
-      - name: Wait for DSVW to be ready
-        run: |
-          for i in {1..10}; do
-            if curl -s http://localhost:3000 > /dev/null; then
-              echo "App is up"
-              break
-            fi
-            sleep 2
-          done
+    - name: Wait for DSVW to be ready
+      run: |
+        for i in {1..10}; do
+          if curl -s http://localhost:3000 > /dev/null; then
+            echo "App is up"
+            break
+          fi
+          sleep 2
+        done
 
-      - name: Run OWASP ZAP Baseline Scan (DAST)
-        uses: zaproxy/action-baseline@v0.10.0
-        with:
-          target: 'http://localhost:3000'
-          fail_action: true
+    - name: Run OWASP ZAP Baseline Scan (DAST)
+      uses: zaproxy/action-baseline@v0.10.0
+      with:
+        target: 'http://localhost:3000'
+        fail_action: true
 
-      - name: Cleanup
-        if: always()
-        run: docker rm -f dsvw || true
+    - name: Cleanup
+      if: always()
+      run: docker rm -f dsvw || true
