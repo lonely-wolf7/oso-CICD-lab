@@ -68,14 +68,14 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-  
+
       - name: Build Docker image
         run: docker build -t dsvw:latest .
-  
+
       - name: Run DSVW container
         run: |
           docker run -d -p 3000:8000 --name dsvw dsvw:latest
-  
+
       - name: Wait for DSVW to be ready
         run: |
           for i in {1..30}; do
@@ -86,21 +86,24 @@ jobs:
             echo "Waiting for the app to start..."
             sleep 5
           done
-  
+
+      - name: Docker Login
+        run: echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
+
       - name: Start OWASP ZAP container
         run: |
-          docker run -d --name zap -p 8080:8080 owasp/zap2docker-stable
-  
+          docker run -d --name zap -p 8080:8080 owasp/zap2docker
+
       - name: Set permissions for /zap/wrk
         run: docker exec zap chmod -R 777 /zap/wrk
-  
+
       - name: Run OWASP ZAP Baseline Scan (DAST)
         uses: zaproxy/action-baseline@v0.10.0
         with:
           target: 'http://localhost:3000'
           fail_action: true
           zap_args: '-configdirs /zap/wrk'
-  
+
       - name: Cleanup
         if: always()
         run: docker rm -f dsvw zap || true
