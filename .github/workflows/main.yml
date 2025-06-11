@@ -78,19 +78,24 @@ jobs:
 
     - name: Wait for DSVW to be ready
       run: |
-        for i in {1..10}; do
+        for i in {1..30}; do
           if curl -s http://localhost:3000 > /dev/null; then
-            echo "App is up"
+            echo "App is up and running"
             break
           fi
-          sleep 2
+          echo "Waiting for the app to start..."
+          sleep 5
         done
+
+    - name: Set permissions for /zap/wrk
+      run: docker exec zap chmod -R 777 /zap/wrk
 
     - name: Run OWASP ZAP Baseline Scan (DAST)
       uses: zaproxy/action-baseline@v0.10.0
       with:
         target: 'http://localhost:3000'
         fail_action: true
+        zap_args: '-configdirs /zap/wrk'
 
     - name: Cleanup
       if: always()
