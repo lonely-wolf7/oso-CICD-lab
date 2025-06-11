@@ -57,46 +57,50 @@ jobs:
         uses: gitleaks/gitleaks-action@v2
         with:
           args: "--source . --verbose"
-
+          
   dast:
-   runs-on: ubuntu-latest
-   needs: build-test
-   services:
-    docker:
-      image: docker:20.10.7-dind
-      options: --privileged
-   steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-
-    - name: Build Docker image
-      run: docker build -t dsvw:latest .
-
-    - name: Run DSVW container
-      run: |
-        docker run -d -p 3000:8000 --name dsvw dsvw:latest
-
-    - name: Wait for DSVW to be ready
-      run: |
-        for i in {1..30}; do
-          if curl -s http://localhost:3000 > /dev/null; then
-            echo "App is up and running"
-            break
-          fi
-          echo "Waiting for the app to start..."
-          sleep 5
-        done
-
-    - name: Set permissions for /zap/wrk
-      run: docker exec zap chmod -R 777 /zap/wrk
-
-    - name: Run OWASP ZAP Baseline Scan (DAST)
-      uses: zaproxy/action-baseline@v0.10.0
-      with:
-        target: 'http://localhost:3000'
-        fail_action: true
-        zap_args: '-configdirs /zap/wrk'
-
-    - name: Cleanup
-      if: always()
-      run: docker rm -f dsvw || true
+    runs-on: ubuntu-latest
+    needs: build-test
+    services:
+      docker:
+        image: docker:20.10.7-dind
+        options: --privileged
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+  
+      - name: Build Docker image
+        run: docker build -t dsvw:latest .
+  
+      - name: Run DSVW container
+        run: |
+          docker run -d -p 3000:8000 --name dsvw dsvw:latest
+  
+      - name: Wait for DSVW to be ready
+        run: |
+          for i in {1..30}; do
+            if curl -s http://localhost:3000 > /dev/null; then
+              echo "App is up and running"
+              break
+            fi
+            echo "Waiting for the app to start..."
+            sleep 5
+          done
+  
+      - name: Start OWASP ZAP container
+        run: |
+          docker run -d --name zap -p 8080:8080 owasp/zap2docker-stable
+  
+      - name: Set permissions for /zap/wrk
+        run: docker exec zap chmod -R 777 /zap/wrk
+  
+      - name: Run OWASP ZAP Baseline Scan (DAST)
+        uses: zaproxy/action-baseline@v0.10.0
+        with:
+          target: 'http://localhost:3000'
+          fail_action: true
+          zap_args: '-configdirs /zap/wrk'
+  
+      - name: Cleanup
+        if: always()
+        run: docker rm -f dsvw zap || true
