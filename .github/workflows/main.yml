@@ -92,7 +92,7 @@ jobs:
 
       - name: Start OWASP ZAP container
         run: |
-          docker run -d --name zap -p 8080:8080 owasp/zap2docker
+          docker run -d --name zap -p 8080:8080 owasp/zap2docker-stable
 
       - name: Set permissions for /zap/wrk
         run: docker exec zap chmod -R 777 /zap/wrk
